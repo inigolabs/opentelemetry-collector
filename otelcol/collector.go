@@ -68,6 +68,11 @@ type CollectorSettings struct {
 	// and manually handle the signals to shutdown the collector.
 	DisableGracefulShutdown bool
 
+	// Deprecated: [v0.95.0] Use ConfigProviderSettings instead.
+	// ConfigProvider provides the service configuration.
+	// If the provider watches for configuration change, collector may reload the new configuration upon changes.
+	ConfigProvider ConfigProvider
+
 	// ConfigProviderSettings allows configuring the way the Collector retrieves its configuration
 	// The Collector will reload based on configuration changes from the ConfigProvider if any
 	// confmap.Providers watch for configuration changes.
@@ -120,9 +125,13 @@ func NewCollector(set CollectorSettings) (*Collector, error) {
 	set.ConfigProviderSettings.ResolverSettings.ProviderSettings = confmap.ProviderSettings{Logger: logger}
 	set.ConfigProviderSettings.ResolverSettings.ConverterSettings = confmap.ConverterSettings{Logger: logger}
 
-	configProvider, err := NewConfigProvider(set.ConfigProviderSettings)
-	if err != nil {
-		return nil, err
+	configProvider := set.ConfigProvider
+	if set.ConfigProvider == nil {
+		var err error
+		configProvider, err = NewConfigProvider(set.ConfigProviderSettings)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	state := &atomic.Int32{}
